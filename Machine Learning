@@ -1,0 +1,50 @@
+from sklearn.model_selection import train_test_split, KFold, cross_val_score, cross_val_predict, StratifiedKFold
+from sklearn.linear_model import LinearRegression
+from numpy import mean, absolute, sqrt
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn import metrics, model_selection
+from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVC
+from sklearn.ensemble import RandomForestClassifier
+
+dataset= pd.read_excel('vakif_data_2021_refined.xlsx')
+X = dataset[["en kucuk","kontnjn","yrlstrm","ucret","gelir","potnsyl gelir"]]
+y = dataset["oran"].to_numpy().reshape(-1,1)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=1)
+models = []
+models.append(('LR', LinearRegression(fit_intercept=True).fit(X_train, y_train)))
+models.append(('DTC', DecisionTreeClassifier(criterion = 'entropy', random_state=0)))
+models.append(('SVM', SVC()))
+models.append(('RF',RandomForestClassifier()))
+# evaluate each model in turn
+results = []
+resultsbox = []
+names = []
+scoring = 'accuracy'
+for name, model in models:
+  kfold = model_selection.KFold(n_splits=10, random_state=1, shuffle=True)
+  if name=='LR':
+    cv_results = model_selection.cross_val_score(model, X_train, y_train,cv=kfold, n_jobs=-1)
+  else:
+    cv_results = model_selection.cross_val_score(model, X_train, y_train, scoring=scoring,cv=kfold, n_jobs=-1)
+  results.append(cv_results.mean())
+  resultsbox.append(cv_results)
+  names.append(name)
+  
+  msg = "%s: %f (%f)" % (name, cv_results.mean(), cv_results.std())
+  print(msg)
+
+
+plt.bar(names, height = results, width = 0.8)
+plt.show()
+# boxplot algorithm comparison
+fig = plt.figure()
+fig.suptitle('Algorithm Comparison')
+ax = fig.add_subplot(111)
+plt.boxplot(resultsbox)
+ax.set_xticklabels(names)
+plt.show()
